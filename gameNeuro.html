@@ -9,7 +9,7 @@
   html, body { height: 100%; margin: 0; overflow: hidden; }
   body { font-family: Arial, sans-serif; background:#f5f7fa; }
 
-  /* ===== App layout ===== */
+  /* Full-screen layout: header / board / options */
   .app {
     height: 100vh;
     display: grid;
@@ -18,51 +18,57 @@
     padding: 8px;
   }
 
+  /* ✅ Smaller title from the start */
   h2 {
     margin: 0;
     text-align: center;
-    font-size: clamp(22px, 3vw, 34px);
+    font-size: clamp(18px, 2.2vw, 26px);
     font-weight: 900;
+    line-height: 1.05;
   }
 
   .topbar {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     justify-content: center;
     align-items: center;
+    flex-wrap: wrap;
     margin-top: 4px;
   }
 
+  /* ✅ Smaller controls */
   .btn {
-    padding: 10px 16px;
+    padding: 8px 12px;
     border: 0;
-    border-radius: 12px;
+    border-radius: 10px;
     background: #111827;
     color: white;
     cursor: pointer;
     font-weight: 800;
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .score {
-    padding: 10px 16px;
+    padding: 8px 12px;
     background: white;
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1px solid #d1d5db;
     font-weight: 900;
-    font-size: 20px;
+    font-size: 18px;
   }
 
+  /* ✅ Smaller success banner */
   .msg {
     margin: 4px auto 0;
     width: min(1200px, 100%);
-    padding: 10px 14px;
+    padding: 8px 12px;
     background: #fff;
     border: 1px solid #d1d5db;
-    border-radius: 12px;
+    border-radius: 10px;
     text-align: center;
     font-weight: 900;
-    font-size: 20px;
+    font-size: 16px;
+    line-height: 1.1;
     display: none;
   }
 
@@ -83,10 +89,11 @@
     padding: 10px;
     display: flex;
     flex-direction: column;
+    min-height: 0;
   }
 
   .zone h3 {
-    margin: 2px 0 6px;
+    margin: 4px 0 8px;
     text-align: center;
     font-size: clamp(22px, 2.6vw, 34px);
     font-weight: 900;
@@ -94,16 +101,18 @@
 
   .zone-items {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     padding: 4px;
+    overflow: hidden; /* no internal scroll needed once header is smaller */
   }
 
+  /* Base item */
   .item {
     background: #e3e9ff;
-    border-radius: 14px;
-    padding: 10px;
+    border-radius: 18px;
     text-align: center;
     cursor: grab;
     user-select: none;
@@ -112,6 +121,13 @@
 
   .correct { background:#c8f7c5; }
   .wrong { background:#f7c5c5; }
+
+  /* Placed items (same size as earlier versions; not shrinking options) */
+  .placed {
+    padding: 12px 14px;
+    font-size: clamp(16px, 1.6vw, 22px);
+    border-radius: 16px;
+  }
 
   /* ===== Options ===== */
   .options {
@@ -135,7 +151,7 @@
     gap: 14px;
   }
 
-  /* 🚨 VERY BIG option labels 🚨 */
+  /* ✅ Options size stays EXACTLY as before the recent changes (the baseline big options) */
   .items-row .item {
     padding: 20px 22px;
     min-width: 240px;
@@ -143,23 +159,21 @@
     border-radius: 18px;
   }
 
-  /* ===== Keep no-scroll on smaller projectors ===== */
+  /* Keep no-scroll on smaller projectors */
   @media (max-height: 720px) {
-    h2 { font-size: 26px; }
+    h2 { font-size: 18px; }
+    .btn { font-size: 15px; padding: 7px 11px; }
+    .score { font-size: 16px; padding: 7px 11px; }
+    .msg { font-size: 14px; padding: 7px 10px; }
+
     .zone h3 { font-size: 26px; }
-    .items-row .item {
-      min-width: 220px;
-      font-size: 26px;
-      padding: 18px 20px;
-    }
+    .items-row .item { min-width: 220px; font-size: 26px; padding: 18px 20px; }
+    .placed { font-size: 18px; padding: 10px 12px; }
   }
 
   @media (max-height: 640px) {
-    .items-row .item {
-      min-width: 200px;
-      font-size: 22px;
-      padding: 16px 18px;
-    }
+    .items-row .item { min-width: 200px; font-size: 22px; padding: 16px 18px; }
+    .placed { font-size: 16px; padding: 9px 11px; }
   }
 </style>
 </head>
@@ -251,6 +265,11 @@ function clearMark(item) { item.classList.remove("correct", "wrong"); }
 function setShort(item) { item.textContent = item.dataset.short; }
 function setFull(item) { item.textContent = item.dataset.full; }
 
+function markPlaced(item, placed) {
+  if (placed) item.classList.add("placed");
+  else item.classList.remove("placed");
+}
+
 function updateScore() {
   scoreEl.textContent = `Score: ${correctTries} / ${totalTries} tries`;
 }
@@ -262,6 +281,7 @@ function showMsg(text) {
 
 function hideMsg() {
   msgEl.style.display = "none";
+  msgEl.textContent = "";
 }
 
 function shuffleOptions() {
@@ -275,65 +295,85 @@ function shuffleOptions() {
 
 function checkSuccess() {
   const all = Array.from(document.querySelectorAll(".item"));
-  if (all.every(i => !isInOptions(i) && i.classList.contains("correct"))) {
+  const allDone = all.every(i => !isInOptions(i) && i.classList.contains("correct"));
+  if (allDone) {
     showMsg(`Success! ✅ All 10 correct. Accuracy: ${correctTries}/${totalTries}`);
   }
 }
 
+function snapBackToOptions(item) {
+  clearMark(item);
+  setShort(item);
+  markPlaced(item, false);
+  optionsRow.appendChild(item);
+}
+
 document.querySelectorAll(".item").forEach(item => {
   setShort(item);
+  markPlaced(item, false);
+
   item.addEventListener("dragstart", () => {
     dragged = item;
     if (!msgEl.textContent.startsWith("Success")) hideMsg();
   });
 });
 
+// drop back to options
 optionsRow.addEventListener("dragover", e => e.preventDefault());
 optionsRow.addEventListener("drop", () => {
   if (!dragged) return;
   clearMark(dragged);
   setShort(dragged);
+  markPlaced(dragged, false);
   optionsRow.appendChild(dragged);
   dragged = null;
 });
 
+// drop into zones
 document.querySelectorAll(".zone").forEach(zone => {
   zone.addEventListener("dragover", e => e.preventDefault());
   zone.addEventListener("drop", () => {
     if (!dragged) return;
 
     totalTries++;
-    if (dragged.dataset.answer === zone.dataset.type) {
+    const ok = (dragged.dataset.answer === zone.dataset.type);
+
+    if (ok) {
       correctTries++;
       dragged.classList.add("correct");
-      setFull(dragged);
+      dragged.classList.remove("wrong");
+      setFull(dragged);          // expand only after correct placement
+      markPlaced(dragged, true);
       zone.querySelector(".zone-items").appendChild(dragged);
       dragged = null;
+
       updateScore();
       checkSuccess();
     } else {
       dragged.classList.add("wrong");
+      dragged.classList.remove("correct");
       updateScore();
+
       const snap = dragged;
       dragged = null;
-      setTimeout(() => {
-        clearMark(snap);
-        setShort(snap);
-        optionsRow.appendChild(snap);
-      }, 120);
+      setTimeout(() => snapBackToOptions(snap), 120);
     }
   });
 });
 
+// reset
 resetBtn.addEventListener("click", () => {
   hideMsg();
   totalTries = 0;
   correctTries = 0;
+
   document.querySelectorAll(".item").forEach(item => {
     clearMark(item);
     setShort(item);
+    markPlaced(item, false);
     optionsRow.appendChild(item);
   });
+
   shuffleOptions();
   updateScore();
 });
