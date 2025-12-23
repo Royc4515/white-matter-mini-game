@@ -2,125 +2,202 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>White Matter Drag Game</title>
 <style>
-  body { font-family: Arial; background:#f5f7fa; padding:20px; margin:0; }
-  h2 { text-align:center; margin: 10px 0 10px; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; overflow: hidden; }
+  body { font-family: Arial, sans-serif; background:#f5f7fa; }
+
+  /* Full-screen layout: header / board / options */
+  .app {
+    height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  h2 {
+    margin: 0;
+    text-align: center;
+    font-size: clamp(18px, 2.2vw, 28px);
+    font-weight: 800;
+  }
 
   .topbar {
-    width: min(980px, 100%);
-    margin: 0 auto 14px;
     display: flex;
-    gap: 12px;
-    align-items: center;
+    gap: 10px;
     justify-content: center;
+    align-items: center;
     flex-wrap: wrap;
+    margin-top: 6px;
   }
+
   .btn {
-    padding: 10px 14px;
+    padding: 8px 12px;
     border: 0;
-    border-radius: 8px;
+    border-radius: 10px;
     background: #111827;
     color: white;
     cursor: pointer;
-    font-weight: 600;
-  }
-  .btn:active { transform: translateY(1px); }
-
-  .score {
-    padding: 10px 14px;
-    background: white;
-    border-radius: 8px;
-    border: 1px solid #d1d5db;
     font-weight: 700;
   }
 
-  .msg {
-    width: min(980px, 100%);
-    margin: 10px auto 0;
-    padding: 10px 14px;
-    background: #fff;
-    border-radius: 8px;
+  .score {
+    padding: 8px 12px;
+    background: white;
+    border-radius: 10px;
     border: 1px solid #d1d5db;
-    text-align: center;
     font-weight: 800;
+  }
+
+  .msg {
+    margin: 0 auto;
+    width: min(1100px, 100%);
+    padding: 8px 12px;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: 900;
     display: none;
   }
 
-  .board { display:flex; gap:20px; justify-content:center; flex-wrap:wrap; }
-  .zone {
-    width:260px; min-height:260px; padding:10px;
-    border:2px dashed #999; border-radius:10px; background:#fff;
+  /* Middle board fills remaining height */
+  .board {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    width: min(1100px, 100%);
+    margin: 0 auto;
+    min-height: 0; /* important to prevent overflow in CSS grid */
   }
-  .zone h3 { text-align:center; margin: 8px 0 12px; }
+
+  .zone {
+    background: #fff;
+    border: 2px dashed #9aa0a6;
+    border-radius: 16px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* allow internal content to size without overflow */
+  }
+
+  .zone h3 {
+    margin: 6px 0 10px;
+    text-align: center;
+    font-size: clamp(18px, 2vw, 26px);
+  }
+
+  .zone-items {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 6px;
+    min-height: 0;
+  }
 
   .item {
-    padding:8px; margin:6px 0; background:#e3e9ff;
-    border-radius:6px; cursor:grab; text-align:center;
+    background: #e3e9ff;
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+    cursor: grab;
     user-select: none;
+    font-weight: 700;
+    font-size: clamp(12px, 1.5vw, 16px);
   }
+
   .correct { background:#c8f7c5; }
   .wrong { background:#f7c5c5; }
 
-  /* Options side-by-side */
-  .options-wrap {
-    border: none !important;
-    background: none !important;
-    width: min(980px, 100%);
+  /* Bottom options area */
+  .options {
+    width: min(1100px, 100%);
     margin: 0 auto;
-    padding: 0;
+    padding-top: 6px;
+    border-top: 1px solid #c9c9c9;
   }
+
+  .options h3 {
+    margin: 8px 0 8px;
+    text-align: center;
+    font-size: clamp(16px, 2vw, 22px);
+  }
+
   .items-row {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
     justify-content: center;
-    align-items: stretch;
   }
+
   .items-row .item {
-    margin: 0;
+    cursor: grab;
+    padding: 10px 12px;
     min-width: 150px;
   }
 
-  hr { margin: 18px auto; width: min(980px, 100%); }
+  /* Make sure on shorter screens it still fits */
+  @media (max-height: 750px) {
+    .app { padding: 8px; gap: 8px; }
+    .item { padding: 8px; border-radius: 10px; }
+    .items-row .item { padding: 8px 10px; min-width: 140px; }
+    .zone { padding: 8px; }
+  }
+
+  @media (max-height: 650px) {
+    .items-row { gap: 8px; }
+    .items-row .item { min-width: 130px; font-size: 12px; }
+    .zone-items { gap: 6px; }
+  }
 </style>
 </head>
 <body>
 
-<h2>Drag each item to the correct category</h2>
+<div class="app">
+  <div>
+    <h2>Drag each item to the correct category</h2>
 
-<div class="topbar">
-  <button id="resetBtn" class="btn">Reset</button>
-  <div id="score" class="score">Score: 0 / 0 tries</div>
-</div>
+    <div class="topbar">
+      <button id="resetBtn" class="btn">Reset</button>
+      <div id="score" class="score">Score: 0 / 0 tries</div>
+    </div>
 
-<div id="msg" class="msg"></div>
-
-<div class="board">
-  <div class="zone" data-type="commissural">
-    <h3>Commissural</h3>
+    <div id="msg" class="msg"></div>
   </div>
 
-  <div class="zone" data-type="association">
-    <h3>Association</h3>
+  <div class="board">
+    <div class="zone" data-type="commissural">
+      <h3>Commissural</h3>
+      <div class="zone-items"></div>
+    </div>
+
+    <div class="zone" data-type="association">
+      <h3>Association</h3>
+      <div class="zone-items"></div>
+    </div>
   </div>
-</div>
 
-<hr>
+  <div class="options">
+    <h3>Options</h3>
+    <div id="items" class="items-row">
+      <!-- Teacher table mapping (FIXED): Fornix is ASSOCIATION -->
+      <div class="item" draggable="true" data-answer="commissural">Between hemispheres</div>
+      <div class="item" draggable="true" data-answer="association">Within the same hemisphere</div>
 
-<div class="zone options-wrap">
-  <h3 style="text-align:center; margin: 0 0 10px;">Options</h3>
-  <div id="items" class="items-row">
-    <div class="item" draggable="true" data-answer="commissural">Between hemispheres</div>
-    <div class="item" draggable="true" data-answer="association">within the same hemisphere</div>
-    <div class="item" draggable="true" data-answer="association">IFOF</div>
-    <div class="item" draggable="true" data-answer="association">ILF</div>
-    <div class="item" draggable="true" data-answer="commissural">AC</div>
-    <div class="item" draggable="true" data-answer="association">SLF</div>
-    <div class="item" draggable="true" data-answer="commissural">CC</div>
-    <div class="item" draggable="true" data-answer="commissural">PC</div>
-    <div class="item" draggable="true" data-answer="commissural">Fornix</div>
-    <div class="item" draggable="true" data-answer="association">UNC</div>
+      <div class="item" draggable="true" data-answer="commissural">PC</div>
+      <div class="item" draggable="true" data-answer="commissural">AC</div>
+      <div class="item" draggable="true" data-answer="commissural">CC</div>
+
+      <div class="item" draggable="true" data-answer="association">ILF</div>
+      <div class="item" draggable="true" data-answer="association">SLF</div>
+      <div class="item" draggable="true" data-answer="association">Fornix</div>
+      <div class="item" draggable="true" data-answer="association">UNC</div>
+      <div class="item" draggable="true" data-answer="association">IFOF</div>
+    </div>
   </div>
 </div>
 
@@ -132,8 +209,8 @@ const scoreEl = document.getElementById("score");
 const resetBtn = document.getElementById("resetBtn");
 const msgEl = document.getElementById("msg");
 
-let totalTries = 0;        // counts every drop attempt into a category zone
-let correctTries = 0;      // counts every correct drop attempt into a category zone
+let totalTries = 0;
+let correctTries = 0;
 
 function isInOptions(item) {
   return optionsRow.contains(item);
@@ -180,12 +257,11 @@ function snapBackToOptions(item) {
   optionsRow.appendChild(item);
 }
 
-document.querySelectorAll('.item').forEach(item => {
-  item.addEventListener('dragstart', () => {
+document.querySelectorAll(".item").forEach(item => {
+  item.addEventListener("dragstart", () => {
     dragged = item;
-    // don't hide success once achieved unless reset; but hide minor feedback
-    if (msgEl.style.display === "block" && msgEl.textContent.startsWith("Success")) return;
-    hideMsg();
+    // keep success message until reset
+    if (!msgEl.textContent.startsWith("Success")) hideMsg();
   });
 });
 
@@ -198,49 +274,44 @@ optionsRow.addEventListener("drop", () => {
   dragged = null;
 });
 
-// category zones
-document.querySelectorAll('.zone').forEach(zone => {
-  zone.addEventListener('dragover', e => e.preventDefault());
+// category zones: snap back on wrong, count tries
+document.querySelectorAll(".zone").forEach(zone => {
+  zone.addEventListener("dragover", e => e.preventDefault());
 
-  zone.addEventListener('drop', () => {
+  zone.addEventListener("drop", () => {
     if (!dragged) return;
 
     const type = zone.dataset.type;
     const isCategoryZone = (type === "commissural" || type === "association");
     if (!isCategoryZone) return;
 
-    // count this as a try
     totalTries++;
-
     const correctDrop = (dragged.dataset.answer === type);
 
     if (correctDrop) {
       correctTries++;
       dragged.classList.remove("wrong");
       dragged.classList.add("correct");
-      zone.appendChild(dragged);
+      zone.querySelector(".zone-items").appendChild(dragged);
       dragged = null;
 
       updateScore();
       checkSuccess();
     } else {
-      // snap back
       const toSnap = dragged;
       dragged = null;
 
+      // tiny feedback flash, then snap back clean
       toSnap.classList.remove("correct");
-      toSnap.classList.add("wrong"); // momentary feedback
+      toSnap.classList.add("wrong");
       updateScore();
 
-      // snap back quickly, and clear the wrong color so options stay clean
-      setTimeout(() => {
-        snapBackToOptions(toSnap);
-      }, 120);
+      setTimeout(() => snapBackToOptions(toSnap), 120);
     }
   });
 });
 
-// reset: move all back, clear marks, reset counters, shuffle
+// reset: return all, clear marks, reset counters, shuffle, hide message
 resetBtn.addEventListener("click", () => {
   hideMsg();
   totalTries = 0;
@@ -255,7 +326,7 @@ resetBtn.addEventListener("click", () => {
   updateScore();
 });
 
-// initial shuffle + score
+// initial
 shuffleOptions();
 updateScore();
 </script>
