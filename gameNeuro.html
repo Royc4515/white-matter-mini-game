@@ -5,7 +5,34 @@
 <title>White Matter Drag Game</title>
 <style>
   body { font-family: Arial; background:#f5f7fa; padding:20px; margin:0; }
-  h2 { text-align:center; margin: 10px 0 20px; }
+  h2 { text-align:center; margin: 10px 0 10px; }
+
+  .topbar {
+    width: min(980px, 100%);
+    margin: 0 auto 14px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 8px;
+    background: #111827;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .btn:active { transform: translateY(1px); }
+  .score {
+    padding: 10px 14px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    font-weight: 700;
+  }
 
   .board { display:flex; gap:20px; justify-content:center; flex-wrap:wrap; }
   .zone {
@@ -22,7 +49,7 @@
   .correct { background:#c8f7c5; }
   .wrong { background:#f7c5c5; }
 
-  /* Options laid out side-by-side (no scrolling needed) */
+  /* Options laid out side-by-side (wrap) */
   .options-wrap {
     border: none !important;
     background: none !important;
@@ -38,8 +65,8 @@
     align-items: stretch;
   }
   .items-row .item {
-    margin: 0;                 /* remove vertical stacking margins */
-    min-width: 150px;          /* make tiles readable */
+    margin: 0;
+    min-width: 150px;
   }
 
   hr { margin: 18px auto; width: min(980px, 100%); }
@@ -48,6 +75,11 @@
 <body>
 
 <h2>Drag each item to the correct category</h2>
+
+<div class="topbar">
+  <button id="resetBtn" class="btn">Reset</button>
+  <div id="score" class="score">Score: 0 / 10</div>
+</div>
 
 <div class="board">
   <div class="zone" data-type="commissural">
@@ -80,6 +112,23 @@
 <script>
 let dragged = null;
 
+const optionsRow = document.getElementById("items");
+const scoreEl = document.getElementById("score");
+const resetBtn = document.getElementById("resetBtn");
+
+function updateScore() {
+  const all = document.querySelectorAll(".item");
+  let correct = 0;
+  all.forEach(it => {
+    if (it.classList.contains("correct")) correct++;
+  });
+  scoreEl.textContent = `Score: ${correct} / ${all.length}`;
+}
+
+function clearMark(item) {
+  item.classList.remove("correct", "wrong");
+}
+
 document.querySelectorAll('.item').forEach(item => {
   item.addEventListener('dragstart', () => {
     dragged = item;
@@ -92,23 +141,49 @@ document.querySelectorAll('.zone').forEach(zone => {
   zone.addEventListener('drop', () => {
     if (!dragged) return;
 
-    // only allow dropping into the 2 category zones (not the options wrapper)
+    // allow drop into category zones OR back into options area
     const isCategoryZone = zone.dataset.type === "commissural" || zone.dataset.type === "association";
-    if (!isCategoryZone) return;
+    const isOptionsZone = zone === optionsRow || zone.contains(optionsRow); // safety
 
-    // mark correct/incorrect
-    if (dragged.dataset.answer === zone.dataset.type) {
-      dragged.classList.remove("wrong");
-      dragged.classList.add("correct");
-    } else {
-      dragged.classList.remove("correct");
-      dragged.classList.add("wrong");
+    if (isCategoryZone) {
+      if (dragged.dataset.answer === zone.dataset.type) {
+        dragged.classList.remove("wrong");
+        dragged.classList.add("correct");
+      } else {
+        dragged.classList.remove("correct");
+        dragged.classList.add("wrong");
+      }
+      zone.appendChild(dragged);
+      dragged = null;
+      updateScore();
+      return;
     }
 
-    zone.appendChild(dragged);
-    dragged = null;
+    // (We don't actually have drop listeners on the optionsRow div yet, so nothing here)
   });
 });
+
+// enable dropping items back into the Options row
+optionsRow.addEventListener("dragover", e => e.preventDefault());
+optionsRow.addEventListener("drop", () => {
+  if (!dragged) return;
+  clearMark(dragged);
+  optionsRow.appendChild(dragged);
+  dragged = null;
+  updateScore();
+});
+
+resetBtn.addEventListener("click", () => {
+  // move everything back to options and clear marks
+  document.querySelectorAll(".item").forEach(item => {
+    clearMark(item);
+    optionsRow.appendChild(item);
+  });
+  updateScore();
+});
+
+// initial score
+updateScore();
 </script>
 
 </body>
