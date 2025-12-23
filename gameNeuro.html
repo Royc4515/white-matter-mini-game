@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>White Matter Drag Game</title>
+<style>
+  body { font-family: Arial; background:#f5f7fa; padding:20px; }
+  h2 { text-align:center; }
+  .board { display:flex; gap:20px; justify-content:center; }
+  .zone {
+    width:260px; min-height:260px; padding:10px;
+    border:2px dashed #999; border-radius:10px; background:#fff;
+  }
+  .zone h3 { text-align:center; }
+  .item {
+    padding:8px; margin:6px 0; background:#e3e9ff;
+    border-radius:6px; cursor:grab; text-align:center;
+  }
+  .correct { background:#c8f7c5; }
+  .wrong { background:#f7c5c5; }
+</style>
+</head>
+<body>
+
+<h2>Drag each item to the correct category</h2>
+
+<div class="board">
+  <div class="zone" data-type="commissural">
+    <h3>Commissural</h3>
+  </div>
+
+  <div class="zone" data-type="association">
+    <h3>Association</h3>
+  </div>
+</div>
+
+<hr>
+
+<div class="zone" style="border:none; background:none">
+  <h3>Options</h3>
+  <div id="items">
+    <div class="item" draggable="true" data-answer="commissural">Between hemispheres</div>
+    <div class="item" draggable="true" data-answer="association">within the same hemisphere</div>
+    <div class="item" draggable="true" data-answer="association">IFOF</div>
+    <div class="item" draggable="true" data-answer="association">ILF</div>
+    <div class="item" draggable="true" data-answer="commissural">AC</div>
+    <div class="item" draggable="true" data-answer="association">SLF</div>
+    <div class="item" draggable="true" data-answer="commissural">CC</div>
+    <div class="item" draggable="true" data-answer="commissural">PC</div>
+    <div class="item" draggable="true" data-answer="commissural">Fornix</div>
+    <div class="item" draggable="true" data-answer="association">UNC</div>
+  </div>
+</div>
+
+<script>
+let dragged;
+
+document.querySelectorAll('.item').forEach(item => {
+  item.addEventListener('dragstart', e => dragged = item);
+});
+
+document.querySelectorAll('.zone').forEach(zone => {
+  zone.addEventListener('dragover', e => e.preventDefault());
+  zone.addEventListener('drop', () => {
+    if (!dragged) return;
+    if (dragged.dataset.answer === zone.dataset.type) {
+      dragged.className = "item correct";
+    } else {
+      dragged.className = "item wrong";
+    }
+    zone.appendChild(dragged);
+    dragged = null;
+  });
+});
+</script>
+
+</body>
+</html>
