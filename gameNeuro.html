@@ -45,16 +45,17 @@
     font-size: 16px;
   }
   .btn.secondary { background: #374151; }
-  .btn.active { outline: 3px solid #60a5fa; }
   .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
-  .score {
+  .pill {
     padding: 8px 12px;
     background: white;
     border-radius: 10px;
     border: 1px solid #d1d5db;
     font-weight: 900;
     font-size: 18px;
+    min-width: 140px;
+    text-align: center;
   }
 
   .msg {
@@ -148,7 +149,7 @@
     gap: 14px;
   }
 
-  /* Keep options size exactly as before */
+  /* Options size stays the same */
   .items-row .item {
     padding: 20px 22px;
     min-width: 240px;
@@ -159,7 +160,7 @@
   @media (max-height: 720px) {
     h2 { font-size: 18px; }
     .btn { font-size: 15px; padding: 7px 11px; }
-    .score { font-size: 16px; padding: 7px 11px; }
+    .pill { font-size: 16px; padding: 7px 11px; }
     .msg { font-size: 14px; padding: 7px 10px; }
 
     .zone h3 { font-size: 26px; }
@@ -180,13 +181,15 @@
     <h2>Drag each item to the correct category</h2>
 
     <div class="topbar">
-      <!-- Single toggle mode button -->
-      <button id="modeToggleBtn" class="btn active">⚡ Training Mode</button>
+      <button id="modeToggleBtn" class="btn">⚡ Training Mode</button>
 
       <button id="resetBtn" class="btn">Reset</button>
-      <button id="checkAnswersBtn" class="btn secondary" style="display:none;">Check Answers</button>
 
-      <div id="score" class="score">Score: 0 / 0 tries</div>
+      <!-- becomes PRIMARY when enabled -->
+      <button id="checkAnswersBtn" class="btn secondary" style="display:none;" disabled>Check Answers</button>
+
+      <div id="timePill" class="pill" style="display:none;">Time: 60s</div>
+      <div id="scorePill" class="pill">Score: 0 / 0 tries</div>
     </div>
 
     <div id="msg" class="msg"></div>
@@ -207,7 +210,7 @@
   <div class="options">
     <h3>Options</h3>
     <div id="items" class="items-row">
-      <!-- Teacher key -->
+      <!-- Teacher key (Fornix is association) -->
       <div class="item" draggable="true" data-answer="commissural"
            data-short="Between hemispheres" data-full="Between hemispheres">Between hemispheres</div>
 
@@ -242,24 +245,41 @@
 </div>
 
 <script>
+/* =========================
+   CONFIG
+========================= */
+const TEST_SECONDS = 60; // <-- change here if you want (e.g., 45, 90)
+
+/* =========================
+   STATE
+========================= */
 let dragged = null;
 
 const optionsRow = document.getElementById("items");
-const scoreEl = document.getElementById("score");
 const resetBtn = document.getElementById("resetBtn");
 const msgEl = document.getElementById("msg");
 
 const modeToggleBtn = document.getElementById("modeToggleBtn");
 const checkAnswersBtn = document.getElementById("checkAnswersBtn");
 
+const timePill = document.getElementById("timePill");
+const scorePill = document.getElementById("scorePill");
+
 const zones = Array.from(document.querySelectorAll(".zone"));
 
 let mode = "instant"; // "instant" (⚡ Training) | "checkAfter" (🧪 Test)
 
 let totalTries = 0;
-let correctTries = 0; // Training metric (correct / tries)
-let checkedOnce = false; // Test mode
+let correctTries = 0;
 
+let checkedOnce = false;     // test mode: whether checked
+let testLocked = false;      // test mode: lock after timeout auto-check
+let testTimeLeft = TEST_SECONDS;
+let testTimerId = null;
+
+/* =========================
+   HELPERS
+========================= */
 function isInOptions(item) { return optionsRow.contains(item); }
 function clearMark(item) { item.classList.remove("correct", "wrong"); }
 function setShort(item) { item.textContent = item.dataset.short; }
@@ -292,33 +312,95 @@ function placedCount() {
 }
 
 function updateModeButtonLabel() {
-  modeToggleBtn.textContent = (mode === "instant")
-    ? "⚡ Training Mode"
-    : "🧪 Test Mode";
+  modeToggleBtn.textContent = (mode === "instant") ? "⚡ Training Mode" : "🧪 Test Mode";
 }
 
+function setCheckButtonEnabled(enabled) {
+  checkAnswersBtn.disabled = !enabled;
+  // When enabled -> make it PRIMARY like other buttons (remove secondary)
+  if (enabled) checkAnswersBtn.classList.remove("secondary");
+  else if (!checkAnswersBtn.classList.contains("secondary")) checkAnswersBtn.classList.add("secondary");
+}
+
+/* =========================
+   TIMER (TEST MODE)
+========================= */
+function stopTestTimer() {
+  if (testTimerId) {
+    clearInterval(testTimerId);
+    testTimerId = null;
+  }
+}
+
+function updateTimePill() {
+  timePill.textContent = `Time: ${testTimeLeft}s`;
+}
+
+function startTestTimer() {
+  stopTestTimer();
+  testLocked = false;
+  checkedOnce = false;
+  testTimeLeft = TEST_SECONDS;
+  updateTimePill();
+
+  testTimerId = setInterval(() => {
+    testTimeLeft--;
+    updateTimePill();
+
+    if (testTimeLeft <= 0) {
+      stopTestTimer();
+      // auto-check + lock
+      runCheckAnswersTest(true);
+      testLocked = true;
+      setCheckButtonEnabled(false);
+      showMsg(`Time’s up. ⏱️  Checked. ✅   ✅ ❌`);
+    }
+  }, 1000);
+}
+
+/* =========================
+   UI MODE
+========================= */
 function updateUIForMode() {
   hideMsg();
   document.querySelectorAll(".item").forEach(it => clearMark(it));
 
   if (mode === "instant") {
+    stopTestTimer();
+    timePill.style.display = "none";
+
     checkAnswersBtn.style.display = "none";
-    scoreEl.textContent = `Score: ${correctTries} / ${totalTries} tries`;
+    scorePill.textContent = `Score: ${correctTries} / ${totalTries} tries`;
   } else {
+    timePill.style.display = "inline-block";
+    updateTimePill();
+
     checkAnswersBtn.style.display = "inline-block";
-    checkedOnce = false;
-    scoreEl.textContent = `Score: 0 / 10`;
-    checkAnswersBtn.disabled = (placedCount() !== 10);
+    setCheckButtonEnabled(placedCount() === 10);
+
+    scorePill.textContent = `Score: 0 / 10`;
+
+    // start timer as soon as you enter test mode
+    startTestTimer();
   }
 
   updateModeButtonLabel();
 }
 
+/* =========================
+   RESET
+========================= */
 function resetGame() {
   hideMsg();
+  stopTestTimer();
+
   totalTries = 0;
   correctTries = 0;
+
   checkedOnce = false;
+  testLocked = false;
+  testTimeLeft = TEST_SECONDS;
+  updateTimePill();
 
   document.querySelectorAll(".item").forEach(item => {
     clearMark(item);
@@ -338,6 +420,9 @@ function snapBackToOptions(item) {
   optionsRow.appendChild(item);
 }
 
+/* =========================
+   TRAINING SUCCESS
+========================= */
 function checkSuccessTraining() {
   const all = Array.from(document.querySelectorAll(".item"));
   const allDone = all.every(i => !isInOptions(i) && i.classList.contains("correct"));
@@ -346,12 +431,16 @@ function checkSuccessTraining() {
   }
 }
 
+/* =========================
+   TEST CHECK
+========================= */
 function updateCheckButtonStateTest() {
   if (mode !== "checkAfter") return;
-  checkAnswersBtn.disabled = (placedCount() !== 10);
+  if (testLocked) { setCheckButtonEnabled(false); return; }
+  setCheckButtonEnabled(placedCount() === 10);
 }
 
-function runCheckAnswersTest() {
+function runCheckAnswersTest(fromTimeout = false) {
   if (placedCount() !== 10) return;
 
   let correct = 0;
@@ -372,23 +461,25 @@ function runCheckAnswersTest() {
     markPlaced(item, true);
   });
 
-  scoreEl.textContent = `Score: ${correct} / 10`;
+  scorePill.textContent = `Score: ${correct} / 10`;
 
-  if (correct === 10) {
-    showMsg(`Success! ✅ All 10 correct. Score: ${correct}/10`);
-  } else {
-    showMsg(`Checked. ✅ Correct: ${correct}/10   🟩✅   🟥❌`);
+  if (!fromTimeout) {
+    if (correct === 10) showMsg(`Success! ✅ All 10 correct. Score: ${correct}/10`);
+    else showMsg(`Checked. ✅ Correct: ${correct}/10   ✅ ❌`);
   }
 
   checkedOnce = true;
 }
 
-/* Drag setup */
+/* =========================
+   DRAG SETUP
+========================= */
 document.querySelectorAll(".item").forEach(item => {
   setShort(item);
   markPlaced(item, false);
 
   item.addEventListener("dragstart", () => {
+    if (mode === "checkAfter" && testLocked) return; // lock after timeout
     dragged = item;
     if (!msgEl.textContent.startsWith("Success")) hideMsg();
   });
@@ -397,6 +488,8 @@ document.querySelectorAll(".item").forEach(item => {
 optionsRow.addEventListener("dragover", e => e.preventDefault());
 optionsRow.addEventListener("drop", () => {
   if (!dragged) return;
+  if (mode === "checkAfter" && testLocked) { dragged = null; return; }
+
   clearMark(dragged);
   setShort(dragged);
   markPlaced(dragged, false);
@@ -409,6 +502,7 @@ zones.forEach(zone => {
   zone.addEventListener("dragover", e => e.preventDefault());
   zone.addEventListener("drop", () => {
     if (!dragged) return;
+    if (mode === "checkAfter" && testLocked) { dragged = null; return; }
 
     const type = zone.dataset.type;
     zone.querySelector(".zone-items").appendChild(dragged);
@@ -422,11 +516,11 @@ zones.forEach(zone => {
         correctTries++;
         dragged.classList.add("correct");
         dragged.classList.remove("wrong");
-        setFull(dragged); // expand only after correct placement
+        setFull(dragged);
       } else {
         dragged.classList.add("wrong");
         dragged.classList.remove("correct");
-        scoreEl.textContent = `Score: ${correctTries} / ${totalTries} tries`;
+        scorePill.textContent = `Score: ${correctTries} / ${totalTries} tries`;
 
         const snap = dragged;
         dragged = null;
@@ -434,7 +528,7 @@ zones.forEach(zone => {
         return;
       }
 
-      scoreEl.textContent = `Score: ${correctTries} / ${totalTries} tries`;
+      scorePill.textContent = `Score: ${correctTries} / ${totalTries} tries`;
       const finished = Array.from(document.querySelectorAll(".item")).every(i => !isInOptions(i));
       if (finished) checkSuccessTraining();
     } else {
@@ -443,11 +537,11 @@ zones.forEach(zone => {
         clearMark(dragged);
         setShort(dragged);
       } else {
-        // If moved after checking, invalidate grading
+        // If moved after checking (before lock), invalidate grading and require re-check
         clearMark(dragged);
         setShort(dragged);
         hideMsg();
-        scoreEl.textContent = `Score: 0 / 10`;
+        scorePill.textContent = `Score: 0 / 10`;
         checkedOnce = false;
       }
       updateCheckButtonStateTest();
@@ -457,20 +551,23 @@ zones.forEach(zone => {
   });
 });
 
-/* Buttons */
+/* =========================
+   BUTTONS
+========================= */
 resetBtn.addEventListener("click", resetGame);
 
 checkAnswersBtn.addEventListener("click", () => {
-  if (mode === "checkAfter") runCheckAnswersTest();
+  if (mode === "checkAfter" && !testLocked) runCheckAnswersTest(false);
 });
 
-// Toggle between Training and Test modes
 modeToggleBtn.addEventListener("click", () => {
   mode = (mode === "instant") ? "checkAfter" : "instant";
   updateUIForMode();
 });
 
-/* Init */
+/* =========================
+   INIT
+========================= */
 shuffleOptions();
 updateUIForMode();
 </script>
