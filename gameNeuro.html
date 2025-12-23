@@ -182,13 +182,14 @@
 
     <div class="topbar">
       <button id="modeToggleBtn" class="btn">⚡ Training Mode</button>
-
       <button id="resetBtn" class="btn">Reset</button>
 
-      <!-- becomes PRIMARY when enabled -->
       <button id="checkAnswersBtn" class="btn secondary" style="display:none;" disabled>Check Answers</button>
 
+      <!-- Time controls only in Test mode -->
+      <button id="timeToggleBtn" class="btn secondary" style="display:none;">⏱️ 60s</button>
       <div id="timePill" class="pill" style="display:none;">Time: 60s</div>
+
       <div id="scorePill" class="pill">Score: 0 / 0 tries</div>
     </div>
 
@@ -245,14 +246,6 @@
 </div>
 
 <script>
-/* =========================
-   CONFIG
-========================= */
-const TEST_SECONDS = 60; // <-- change here if you want (e.g., 45, 90)
-
-/* =========================
-   STATE
-========================= */
 let dragged = null;
 
 const optionsRow = document.getElementById("items");
@@ -262,6 +255,7 @@ const msgEl = document.getElementById("msg");
 const modeToggleBtn = document.getElementById("modeToggleBtn");
 const checkAnswersBtn = document.getElementById("checkAnswersBtn");
 
+const timeToggleBtn = document.getElementById("timeToggleBtn");
 const timePill = document.getElementById("timePill");
 const scorePill = document.getElementById("scorePill");
 
@@ -272,14 +266,17 @@ let mode = "instant"; // "instant" (⚡ Training) | "checkAfter" (🧪 Test)
 let totalTries = 0;
 let correctTries = 0;
 
-let checkedOnce = false;     // test mode: whether checked
-let testLocked = false;      // test mode: lock after timeout auto-check
-let testTimeLeft = TEST_SECONDS;
+/* Test mode timer choices */
+const TEST_CHOICES = [30, 60, 90];
+let testChoiceIndex = 1; // default 60
+let testTimeLeft = TEST_CHOICES[testChoiceIndex];
 let testTimerId = null;
 
-/* =========================
-   HELPERS
-========================= */
+/* Test mode state */
+let checkedOnce = false;
+let testLocked = false;
+let testStarted = false; // timer starts on FIRST DRAG in test mode
+
 function isInOptions(item) { return optionsRow.contains(item); }
 function clearMark(item) { item.classList.remove("correct", "wrong"); }
 function setShort(item) { item.textContent = item.dataset.short; }
@@ -317,14 +314,10 @@ function updateModeButtonLabel() {
 
 function setCheckButtonEnabled(enabled) {
   checkAnswersBtn.disabled = !enabled;
-  // When enabled -> make it PRIMARY like other buttons (remove secondary)
   if (enabled) checkAnswersBtn.classList.remove("secondary");
   else if (!checkAnswersBtn.classList.contains("secondary")) checkAnswersBtn.classList.add("secondary");
 }
 
-/* =========================
-   TIMER (TEST MODE)
-========================= */
 function stopTestTimer() {
   if (testTimerId) {
     clearInterval(testTimerId);
@@ -332,64 +325,74 @@ function stopTestTimer() {
   }
 }
 
-function updateTimePill() {
+function updateTimeUI() {
+  timeToggleBtn.textContent = `⏱️ ${TEST_CHOICES[testChoiceIndex]}s`;
   timePill.textContent = `Time: ${testTimeLeft}s`;
 }
 
-function startTestTimer() {
+function startTestTimerIfNeeded() {
+  if (mode !== "checkAfter") return;
+  if (testLocked) return;
+  if (testStarted) return;
+
+  testStarted = true;
   stopTestTimer();
-  testLocked = false;
-  checkedOnce = false;
-  testTimeLeft = TEST_SECONDS;
-  updateTimePill();
+
+  testTimeLeft = TEST_CHOICES[testChoiceIndex];
+  updateTimeUI();
 
   testTimerId = setInterval(() => {
     testTimeLeft--;
-    updateTimePill();
+    updateTimeUI();
 
     if (testTimeLeft <= 0) {
       stopTestTimer();
-      // auto-check + lock
-      runCheckAnswersTest(true);
+      // auto-check dragged answers (whatever is placed) + lock
+      const correct = runCheckAnswersTest(true);
       testLocked = true;
       setCheckButtonEnabled(false);
-      showMsg(`Time’s up. ⏱️  Checked. ✅   ✅ ❌`);
+      showMsg(`Time’s up. ⏱️ Checked. ✅ Correct: ${correct}/10   ✅ ❌`);
     }
   }, 1000);
 }
 
-/* =========================
-   UI MODE
-========================= */
+function updateCheckButtonStateTest() {
+  if (mode !== "checkAfter") return;
+  if (testLocked) { setCheckButtonEnabled(false); return; }
+  setCheckButtonEnabled(placedCount() === 10);
+}
+
 function updateUIForMode() {
   hideMsg();
   document.querySelectorAll(".item").forEach(it => clearMark(it));
 
   if (mode === "instant") {
     stopTestTimer();
+    timeToggleBtn.style.display = "none";
     timePill.style.display = "none";
-
     checkAnswersBtn.style.display = "none";
     scorePill.textContent = `Score: ${correctTries} / ${totalTries} tries`;
   } else {
-    timePill.style.display = "inline-block";
-    updateTimePill();
+    // entering test mode: timer NOT started yet (starts on first drag)
+    stopTestTimer();
+    testStarted = false;
+    testLocked = false;
+    checkedOnce = false;
 
+    testTimeLeft = TEST_CHOICES[testChoiceIndex];
+    updateTimeUI();
+
+    timeToggleBtn.style.display = "inline-block";
+    timePill.style.display = "inline-block";
     checkAnswersBtn.style.display = "inline-block";
-    setCheckButtonEnabled(placedCount() === 10);
 
     scorePill.textContent = `Score: 0 / 10`;
-
-    // start timer as soon as you enter test mode
-    startTestTimer();
+    updateCheckButtonStateTest();
   }
 
   updateModeButtonLabel();
 }
 
-/* =========================
-   RESET
-========================= */
 function resetGame() {
   hideMsg();
   stopTestTimer();
@@ -399,8 +402,10 @@ function resetGame() {
 
   checkedOnce = false;
   testLocked = false;
-  testTimeLeft = TEST_SECONDS;
-  updateTimePill();
+  testStarted = false;
+
+  testTimeLeft = TEST_CHOICES[testChoiceIndex];
+  updateTimeUI();
 
   document.querySelectorAll(".item").forEach(item => {
     clearMark(item);
@@ -413,6 +418,36 @@ function resetGame() {
   updateUIForMode();
 }
 
+/* Reset placements but keep current MODE and chosen time */
+function resetPlacementsOnly() {
+  hideMsg();
+  stopTestTimer();
+
+  checkedOnce = false;
+  testLocked = false;
+  testStarted = false;
+
+  // move all back to options (no stats reset)
+  document.querySelectorAll(".item").forEach(item => {
+    clearMark(item);
+    setShort(item);
+    markPlaced(item, false);
+    optionsRow.appendChild(item);
+  });
+
+  shuffleOptions();
+
+  // reset test time UI if in test
+  if (mode === "checkAfter") {
+    testTimeLeft = TEST_CHOICES[testChoiceIndex];
+    updateTimeUI();
+    scorePill.textContent = `Score: 0 / 10`;
+    updateCheckButtonStateTest();
+  } else {
+    scorePill.textContent = `Score: ${correctTries} / ${totalTries} tries`;
+  }
+}
+
 function snapBackToOptions(item) {
   clearMark(item);
   setShort(item);
@@ -420,9 +455,6 @@ function snapBackToOptions(item) {
   optionsRow.appendChild(item);
 }
 
-/* =========================
-   TRAINING SUCCESS
-========================= */
 function checkSuccessTraining() {
   const all = Array.from(document.querySelectorAll(".item"));
   const allDone = all.every(i => !isInOptions(i) && i.classList.contains("correct"));
@@ -431,55 +463,59 @@ function checkSuccessTraining() {
   }
 }
 
-/* =========================
-   TEST CHECK
-========================= */
-function updateCheckButtonStateTest() {
-  if (mode !== "checkAfter") return;
-  if (testLocked) { setCheckButtonEnabled(false); return; }
-  setCheckButtonEnabled(placedCount() === 10);
-}
-
+/* Test check: returns correct/10; auto-check should check what's dragged */
 function runCheckAnswersTest(fromTimeout = false) {
-  if (placedCount() !== 10) return;
+  // If not all placed, still grade placed ones as wrong/right, missing count as wrong.
+  const allItems = Array.from(document.querySelectorAll(".item"));
 
   let correct = 0;
-  const placed = Array.from(document.querySelectorAll(".item")).filter(i => !isInOptions(i));
+  let placedNow = 0;
 
-  placed.forEach(item => {
+  allItems.forEach(item => {
+    const inOptions = isInOptions(item);
+    if (inOptions) {
+      // not placed => wrong by default in test result (no color change needed)
+      clearMark(item);
+      setShort(item);
+      markPlaced(item, false);
+      return;
+    }
+
+    placedNow++;
     const parentZone = item.closest(".zone");
     const zoneType = parentZone ? parentZone.dataset.type : "";
     const ok = (item.dataset.answer === zoneType);
 
     item.classList.toggle("correct", ok);
     item.classList.toggle("wrong", !ok);
-
     if (ok) correct++;
 
-    // Expand abbreviations only after check
     setFull(item);
     markPlaced(item, true);
   });
 
+  // Score is out of 10 regardless
   scorePill.textContent = `Score: ${correct} / 10`;
 
   if (!fromTimeout) {
-    if (correct === 10) showMsg(`Success! ✅ All 10 correct. Score: ${correct}/10`);
+    if (correct === 10 && placedNow === 10) showMsg(`Success! ✅ All 10 correct. Score: ${correct}/10`);
     else showMsg(`Checked. ✅ Correct: ${correct}/10   ✅ ❌`);
   }
 
   checkedOnce = true;
+  return correct;
 }
 
-/* =========================
-   DRAG SETUP
-========================= */
+/* Drag setup */
 document.querySelectorAll(".item").forEach(item => {
   setShort(item);
   markPlaced(item, false);
 
   item.addEventListener("dragstart", () => {
-    if (mode === "checkAfter" && testLocked) return; // lock after timeout
+    if (mode === "checkAfter") {
+      if (testLocked) return;
+      startTestTimerIfNeeded(); // Q3: starts on first drag in test mode
+    }
     dragged = item;
     if (!msgEl.textContent.startsWith("Success")) hideMsg();
   });
@@ -536,13 +572,6 @@ zones.forEach(zone => {
       if (!checkedOnce) {
         clearMark(dragged);
         setShort(dragged);
-      } else {
-        // If moved after checking (before lock), invalidate grading and require re-check
-        clearMark(dragged);
-        setShort(dragged);
-        hideMsg();
-        scorePill.textContent = `Score: 0 / 10`;
-        checkedOnce = false;
       }
       updateCheckButtonStateTest();
     }
@@ -551,13 +580,20 @@ zones.forEach(zone => {
   });
 });
 
-/* =========================
-   BUTTONS
-========================= */
+/* Buttons */
 resetBtn.addEventListener("click", resetGame);
 
 checkAnswersBtn.addEventListener("click", () => {
-  if (mode === "checkAfter" && !testLocked) runCheckAnswersTest(false);
+  if (mode !== "checkAfter") return;
+  if (testLocked) return;
+
+  const correct = runCheckAnswersTest(false);
+  stopTestTimer();
+
+  // lock after manual check (exam style)
+  testLocked = true;
+  setCheckButtonEnabled(false);
+  showMsg(`Checked. ✅ Correct: ${correct}/10   ✅ ❌`);
 });
 
 modeToggleBtn.addEventListener("click", () => {
@@ -565,9 +601,15 @@ modeToggleBtn.addEventListener("click", () => {
   updateUIForMode();
 });
 
-/* =========================
-   INIT
-========================= */
+// Q1: Time toggle cycles 30/60/90 AND resets placements in test mode
+timeToggleBtn.addEventListener("click", () => {
+  if (mode !== "checkAfter") return;
+  // time selection should reset the test setup
+  testChoiceIndex = (testChoiceIndex + 1) % TEST_CHOICES.length;
+  resetPlacementsOnly();
+});
+
+/* Init */
 shuffleOptions();
 updateUIForMode();
 </script>
