@@ -9,156 +9,157 @@
   html, body { height: 100%; margin: 0; overflow: hidden; }
   body { font-family: Arial, sans-serif; background:#f5f7fa; }
 
-  /* Full-screen layout: header / board / options */
+  /* ===== App layout ===== */
   .app {
     height: 100vh;
     display: grid;
     grid-template-rows: auto 1fr auto;
-    gap: 10px;
-    padding: 10px;
+    gap: 8px;
+    padding: 8px;
   }
 
   h2 {
     margin: 0;
     text-align: center;
-    font-size: clamp(18px, 2.2vw, 28px);
-    font-weight: 800;
+    font-size: clamp(22px, 3vw, 34px);
+    font-weight: 900;
   }
 
   .topbar {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     justify-content: center;
     align-items: center;
-    flex-wrap: wrap;
-    margin-top: 6px;
+    margin-top: 4px;
   }
 
   .btn {
-    padding: 8px 12px;
+    padding: 10px 16px;
     border: 0;
-    border-radius: 10px;
+    border-radius: 12px;
     background: #111827;
     color: white;
     cursor: pointer;
-    font-weight: 700;
+    font-weight: 800;
+    font-size: 18px;
   }
 
   .score {
-    padding: 8px 12px;
+    padding: 10px 16px;
     background: white;
-    border-radius: 10px;
+    border-radius: 12px;
     border: 1px solid #d1d5db;
-    font-weight: 800;
+    font-weight: 900;
+    font-size: 20px;
   }
 
   .msg {
-    margin: 0 auto;
-    width: min(1100px, 100%);
-    padding: 8px 12px;
+    margin: 4px auto 0;
+    width: min(1200px, 100%);
+    padding: 10px 14px;
     background: #fff;
     border: 1px solid #d1d5db;
-    border-radius: 10px;
+    border-radius: 12px;
     text-align: center;
     font-weight: 900;
+    font-size: 20px;
     display: none;
   }
 
-  /* Middle board fills remaining height */
+  /* ===== Board ===== */
   .board {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    width: min(1100px, 100%);
+    gap: 16px;
+    width: min(1200px, 100%);
     margin: 0 auto;
     min-height: 0;
   }
 
   .zone {
     background: #fff;
-    border: 2px dashed #9aa0a6;
-    border-radius: 16px;
+    border: 3px dashed #9aa0a6;
+    border-radius: 18px;
     padding: 10px;
     display: flex;
     flex-direction: column;
-    min-height: 0;
   }
 
   .zone h3 {
-    margin: 6px 0 10px;
+    margin: 2px 0 6px;
     text-align: center;
-    font-size: clamp(18px, 2vw, 26px);
+    font-size: clamp(22px, 2.6vw, 34px);
+    font-weight: 900;
   }
 
   .zone-items {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 6px;
-    min-height: 0;
+    gap: 6px;
+    padding: 4px;
   }
 
   .item {
     background: #e3e9ff;
-    border-radius: 10px;
+    border-radius: 14px;
     padding: 10px;
     text-align: center;
     cursor: grab;
     user-select: none;
-    font-weight: 700;
-    font-size: clamp(12px, 1.5vw, 16px);
+    font-weight: 900;
   }
 
   .correct { background:#c8f7c5; }
   .wrong { background:#f7c5c5; }
 
-  /* Bottom options area */
+  /* ===== Options ===== */
   .options {
-    width: min(1100px, 100%);
+    width: min(1200px, 100%);
     margin: 0 auto;
     padding-top: 6px;
-    border-top: 1px solid #c9c9c9;
+    border-top: 2px solid #c9c9c9;
   }
 
   .options h3 {
-    margin: 8px 0 8px;
+    margin: 6px 0;
     text-align: center;
-    font-size: clamp(16px, 2vw, 22px);
+    font-size: 26px;
+    font-weight: 900;
   }
 
   .items-row {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 12px;
+    gap: 14px;
   }
 
-  /* Options are ~25% bigger */
+  /* 🚨 VERY BIG option labels 🚨 */
   .items-row .item {
-    padding: 13px 16px;          /* bigger */
-    min-width: 190px;            /* bigger */
-    font-size: clamp(13px, 1.7vw, 18px);
-    border-radius: 12px;
+    padding: 20px 22px;
+    min-width: 240px;
+    font-size: clamp(24px, 3.2vw, 34px);
+    border-radius: 18px;
   }
 
-  /* Keep no-scroll on smaller heights by compacting spacing a bit */
-  @media (max-height: 780px) {
-    .app { gap: 8px; padding: 8px; }
-    .items-row { gap: 10px; }
-    .items-row .item { min-width: 175px; padding: 12px 14px; }
-    .zone-items { gap: 7px; }
+  /* ===== Keep no-scroll on smaller projectors ===== */
+  @media (max-height: 720px) {
+    h2 { font-size: 26px; }
+    .zone h3 { font-size: 26px; }
+    .items-row .item {
+      min-width: 220px;
+      font-size: 26px;
+      padding: 18px 20px;
+    }
   }
 
-  @media (max-height: 690px) {
-    .items-row .item { min-width: 165px; padding: 11px 13px; font-size: 13px; }
-    .zone { padding: 8px; }
-    .zone-items { gap: 6px; padding: 4px; }
-  }
-
-  @media (max-height: 620px) {
-    .items-row .item { min-width: 155px; padding: 10px 12px; font-size: 12px; }
-    .options h3 { margin: 6px 0 6px; }
+  @media (max-height: 640px) {
+    .items-row .item {
+      min-width: 200px;
+      font-size: 22px;
+      padding: 16px 18px;
+    }
   }
 </style>
 </head>
@@ -191,54 +192,43 @@
   <div class="options">
     <h3>Options</h3>
     <div id="items" class="items-row">
-      <!-- Teacher table mapping (FIXED): Fornix is ASSOCIATION -->
-      <div class="item" draggable="true"
-           data-answer="commissural"
+      <div class="item" draggable="true" data-answer="commissural"
            data-short="Between hemispheres"
            data-full="Between hemispheres">Between hemispheres</div>
 
-      <div class="item" draggable="true"
-           data-answer="association"
+      <div class="item" draggable="true" data-answer="association"
            data-short="Within the same hemisphere"
            data-full="Within the same hemisphere">Within the same hemisphere</div>
 
-      <div class="item" draggable="true"
-           data-answer="commissural"
+      <div class="item" draggable="true" data-answer="commissural"
            data-short="PC"
            data-full="PC – posterior commissure">PC</div>
 
-      <div class="item" draggable="true"
-           data-answer="commissural"
+      <div class="item" draggable="true" data-answer="commissural"
            data-short="AC"
            data-full="AC – anterior commissure">AC</div>
 
-      <div class="item" draggable="true"
-           data-answer="commissural"
+      <div class="item" draggable="true" data-answer="commissural"
            data-short="CC"
            data-full="CC – corpus callosum">CC</div>
 
-      <div class="item" draggable="true"
-           data-answer="association"
+      <div class="item" draggable="true" data-answer="association"
            data-short="ILF"
            data-full="ILF – inferior longitudinal fasciculus">ILF</div>
 
-      <div class="item" draggable="true"
-           data-answer="association"
+      <div class="item" draggable="true" data-answer="association"
            data-short="SLF"
            data-full="SLF – superior longitudinal fasciculus">SLF</div>
 
-      <div class="item" draggable="true"
-           data-answer="association"
+      <div class="item" draggable="true" data-answer="association"
            data-short="Fornix"
            data-full="Fornix">Fornix</div>
 
-      <div class="item" draggable="true"
-           data-answer="association"
+      <div class="item" draggable="true" data-answer="association"
            data-short="UNC"
            data-full="UNC – uncinate fasciculus">UNC</div>
 
-      <div class="item" draggable="true"
-           data-answer="association"
+      <div class="item" draggable="true" data-answer="association"
            data-short="IFOF"
            data-full="IFOF – inferior frontooccipital fasciculus">IFOF</div>
     </div>
@@ -256,20 +246,13 @@ const msgEl = document.getElementById("msg");
 let totalTries = 0;
 let correctTries = 0;
 
-function isInOptions(item) {
-  return optionsRow.contains(item);
-}
+function isInOptions(item) { return optionsRow.contains(item); }
+function clearMark(item) { item.classList.remove("correct", "wrong"); }
+function setShort(item) { item.textContent = item.dataset.short; }
+function setFull(item) { item.textContent = item.dataset.full; }
 
-function clearMark(item) {
-  item.classList.remove("correct", "wrong");
-}
-
-function setShortLabel(item) {
-  item.textContent = item.dataset.short || item.textContent;
-}
-
-function setFullLabel(item) {
-  item.textContent = item.dataset.full || item.textContent;
+function updateScore() {
+  scoreEl.textContent = `Score: ${correctTries} / ${totalTries} tries`;
 }
 
 function showMsg(text) {
@@ -279,15 +262,10 @@ function showMsg(text) {
 
 function hideMsg() {
   msgEl.style.display = "none";
-  msgEl.textContent = "";
-}
-
-function updateScore() {
-  scoreEl.textContent = `Score: ${correctTries} / ${totalTries} tries`;
 }
 
 function shuffleOptions() {
-  const items = Array.from(optionsRow.querySelectorAll(".item"));
+  const items = Array.from(optionsRow.children);
   for (let i = items.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [items[i], items[j]] = [items[j], items[i]];
@@ -297,96 +275,69 @@ function shuffleOptions() {
 
 function checkSuccess() {
   const all = Array.from(document.querySelectorAll(".item"));
-  const allPlaced = all.every(it => !isInOptions(it));
-  const allCorrect = all.every(it => it.classList.contains("correct"));
-  if (allPlaced && allCorrect) {
-    showMsg(`Success! ✅ All 10 are correct. Accuracy: ${correctTries}/${totalTries} tries`);
+  if (all.every(i => !isInOptions(i) && i.classList.contains("correct"))) {
+    showMsg(`Success! ✅ All 10 correct. Accuracy: ${correctTries}/${totalTries}`);
   }
 }
 
-function snapBackToOptions(item) {
-  clearMark(item);
-  setShortLabel(item);          // keep options clean/short
-  optionsRow.appendChild(item);
-}
-
 document.querySelectorAll(".item").forEach(item => {
-  // ensure initial label is short (important if HTML edited)
-  setShortLabel(item);
-
+  setShort(item);
   item.addEventListener("dragstart", () => {
     dragged = item;
     if (!msgEl.textContent.startsWith("Success")) hideMsg();
   });
 });
 
-// allow dropping back into options
 optionsRow.addEventListener("dragover", e => e.preventDefault());
 optionsRow.addEventListener("drop", () => {
   if (!dragged) return;
   clearMark(dragged);
-  setShortLabel(dragged);
+  setShort(dragged);
   optionsRow.appendChild(dragged);
   dragged = null;
 });
 
-// category zones
 document.querySelectorAll(".zone").forEach(zone => {
   zone.addEventListener("dragover", e => e.preventDefault());
-
   zone.addEventListener("drop", () => {
     if (!dragged) return;
 
-    const type = zone.dataset.type;
-    const isCategoryZone = (type === "commissural" || type === "association");
-    if (!isCategoryZone) return;
-
     totalTries++;
-    const correctDrop = (dragged.dataset.answer === type);
-
-    if (correctDrop) {
+    if (dragged.dataset.answer === zone.dataset.type) {
       correctTries++;
-      dragged.classList.remove("wrong");
       dragged.classList.add("correct");
-
-      // Expand abbreviations ONLY after correct placement
-      setFullLabel(dragged);
-
+      setFull(dragged);
       zone.querySelector(".zone-items").appendChild(dragged);
       dragged = null;
-
       updateScore();
       checkSuccess();
     } else {
-      const toSnap = dragged;
-      dragged = null;
-
-      toSnap.classList.remove("correct");
-      toSnap.classList.add("wrong");
+      dragged.classList.add("wrong");
       updateScore();
-
-      setTimeout(() => snapBackToOptions(toSnap), 120);
+      const snap = dragged;
+      dragged = null;
+      setTimeout(() => {
+        clearMark(snap);
+        setShort(snap);
+        optionsRow.appendChild(snap);
+      }, 120);
     }
   });
 });
 
-// reset
 resetBtn.addEventListener("click", () => {
   hideMsg();
   totalTries = 0;
   correctTries = 0;
-
   document.querySelectorAll(".item").forEach(item => {
     clearMark(item);
-    setShortLabel(item);
+    setShort(item);
     optionsRow.appendChild(item);
   });
-
   shuffleOptions();
   updateScore();
 });
 
-// initial
 shuffleOptions();
 updateScore();
 </script>
